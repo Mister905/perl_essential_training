@@ -1,0 +1,269 @@
+A few immediate notes. Perl's syntax is highly permissive and it will allow you to do things which result in ambiguous-looking statements with unpredictable behaviour. There's no point in me explaining what these behaviours are, because you want to avoid them. The way to avoid them is to put use strict; use warnings; at the very top of every Perl script or module that you create.
+
+The semicolon, ;, is the statement terminator. The symbol # begins a comment. A comment lasts until the end of the line. Perl has no block comment syntax.
+
+*** Variables ***
+
+Perl variables come in three types: scalars, arrays and hashes. Each type has its own sigil: $, @ and % respectively. Variables are declared using my, and remain in scope until the end of the enclosing block or file.
+
+*** Scalar Variables ***
+my $undef = undef;
+print $undef; # prints the empty string "" and raises a warning
+
+# implicit undef:
+my $undef2;
+print $undef2; # prints "" and raises exactly the same warning
+my $num = 4040.5;
+print $num; # "4040.5"
+my $string = "world";
+print $string; # "world"
+
+*** String Concatenation ***
+String concatenation using the . operator (same as PHP):
+
+print "Hello ".$string; # "Hello world"
+
+*** Booleans ***
+
+Perl has no boolean data type. A scalar in an if statement evaluates to boolean "false" if and only if it is one of the following:
+
+undef
+number 0
+string ""
+string "0"
+
+The Perl documentation repeatedly claims that functions return "true" or "false" values in certain situations. In practice, when a function is claimed to return "true" it usually returns 1, and when it is claimed to return false it usually returns the empty string, "".
+
+*** Weak Typing ***
+
+It is impossible to determine whether a scalar contains a "number" or a "string". More precisely, it should never be necessary to do this. Whether a scalar behaves like a number or a string depends on the operator with which it is used. When used as a string, a scalar will behave like a string. When used as a number, a scalar will behave like a number (raising a warning if this isn't possible):
+
+my $str1 = "4G";
+my $str2 = "4H";
+
+print $str1 .  $str2; # "4G4H"
+print $str1 +  $str2; # "8" with two warnings
+print $str1 eq $str2; # "" (empty string, i.e. false)
+print $str1 == $str2; # "1" with two warnings
+
+# The classic error
+print "yes" == "no"; # "1" with two warnings; both values evaluate to 0 when used as numbers
+
+*** Comparing Scalars ***
+
+The lesson is to always using the correct operator in the correct situation. There are separate operators for comparing scalars as numbers and comparing scalars as strings:
+
+# Numerical operators:  <,  >, <=, >=, ==, !=, <=>, +, *
+# String operators:    lt, gt, le, ge, eq, ne, cmp, ., x
+
+
+*** Array variables ***
+
+my @array = (
+	"print",
+	"these",
+	"strings",
+	"out",
+	"for",
+	"me", # trailing comma is okay
+);
+
+You have to use a dollar sign to access a value from an array, because the value being retrieved is not an array but a scalar:
+
+print $array[0]; # "print"
+print $array[1]; # "these"
+print $array[2]; # "strings"
+print $array[3]; # "out"
+print $array[4]; # "for"
+print $array[5]; # "me"
+print $array[6]; # returns undef, prints "" and raises a warning
+
+You can use negative indices to retrieve entries starting from the end and working backwards:
+
+print $array[-1]; # "me"
+print $array[-2]; # "for"
+print $array[-3]; # "out"
+print $array[-4]; # "strings"
+print $array[-5]; # "these"
+print $array[-6]; # "print"
+print $array[-7]; # returns undef, prints "" and raises a warning
+
+Variables can be interpolated into strings:
+
+print "Hello $string"; # "Hello world"
+print "@array";        # "print these strings out for me"
+
+
+Caution. One day you will put somebody's email address inside a string, "jeff@gmail.com". This will cause Perl to look for an array variable called @gmail to interpolate into the string, and not find it, resulting in a runtime error. Interpolation can be prevented in two ways: by backslash-escaping the sigil, or by using single quotes instead of double quotes.
+
+print "Hello \$string"; # "Hello $string"
+print 'Hello $string';  # "Hello $string"
+print "\@array";        # "@array"
+print '@array';         # "@array"
+
+
+*** Hash Variables ***
+
+A hash variable is a list of scalars indexed by strings. In Python this is known as a dictionary, and in PHP it is known as an array.
+
+my %scientists = (
+	"Newton"   => "Isaac",
+	"Einstein" => "Albert",
+	"Darwin"   => "Charles",
+);
+Notice how similar this declaration is to an array declaration. In fact, the double arrow symbol => is called a "fat comma", because it is just a synonym for the comma separator. A hash is declared using a list with an even number of elements, where the even-numbered elements (0, 2, ...) are all taken as strings.
+
+Once again, you have to use a dollar sign to access a value from a hash, because the value being retrieved is not a hash but a scalar:
+
+print $scientists{"Newton"};   # "Isaac"
+print $scientists{"Einstein"}; # "Albert"
+print $scientists{"Darwin"};   # "Charles"
+print $scientists{"Dyson"};    # returns undef, prints "" and raises a warning
+
+
+To recap, you have to use square brackets to retrieve a value from an array, but you have to use braces to retrieve a value from a hash.
+
+
+List values cannot be nested. Try it:
+
+my @array = (
+	"apples",
+	"bananas",
+	(
+		"inner",
+		"list",
+		"several",
+		"entries",
+	),
+	"cherries",
+);
+Perl has no way of knowing whether ("inner", "list", "several", "entries") is supposed to be an inner array or an inner hash. Therefore, Perl assumes that it is neither and flattens the list out into a single long list:
+
+print $array[0]; # "apples"
+print $array[1]; # "bananas"
+print $array[2]; # "inner"
+print $array[3]; # "list"
+print $array[4]; # "several"
+print $array[5]; # "entries"
+print $array[6]; # "cherries"
+
+You can force any expression to be evaluated in scalar context using the scalar built-in function:
+
+print scalar reverse "hello world"; # "dlrow olleh"
+
+*** References and nested data structures ***
+
+In the same way that lists cannot contain lists as elements, arrays and hashes cannot contain other arrays and hashes as elements.
+
+However, a scalar variable may contain a reference to any variable, including an array variable or a hash variable. This is how more complicated data structures are created in Perl.
+
+A reference is created using a backslash.
+
+my $colour    = "Indigo";
+my $scalarRef = \$colour;
+Any time you would use the name of a variable, you can instead just put some braces in, and, within the braces, put a reference to a variable instead.
+
+print $colour;         # "Indigo"
+print $scalarRef;      # e.g. "SCALAR(0x182c180)"
+print ${ $scalarRef }; # "Indigo"
+
+If your reference is a reference to an array or hash variable, you can get data out of it using braces or using the more popular arrow operator, ->:
+
+my @colours = ("Red", "Orange", "Yellow", "Green", "Blue");
+my $arrayRef = \@colours;
+
+print $colours[0];       # direct array access
+print ${ $arrayRef }[0]; # use the reference to get to the array
+print $arrayRef->[0];    # exactly the same thing
+
+my %atomicWeights = ("Hydrogen" => 1.008, "Helium" => 4.003, "Manganese" => 54.94);
+my $hashRef = \%atomicWeights;
+
+print $atomicWeights{"Helium"}; # direct hash access
+print ${ $hashRef }{"Helium"};  # use a reference to get to the hash
+print $hashRef->{"Helium"};     # exactly the same thing - this is very common
+
+*** Declaring a data structure ***
+e.g. 1
+my %owner1 = (
+	"name" => "Santa Claus",
+	"DOB"  => "1882-12-25",
+);
+
+my %owner2 = (
+	"name" => "Mickey Mouse",
+	"DOB"  => "1928-11-18",
+);
+
+my @owners = ( \%owner1, \%owner2 );
+
+my %account = (
+	"number" => "12345678",
+	"opened" => "2000-01-01",
+	"owners" => \@owners,
+);
+
+e.g. 2
+
+my %account = (
+	"number" => "31415926",
+	"opened" => "3000-01-01",
+	"owners" => [
+		{
+			"name" => "Philip Fry",
+			"DOB"  => "1974-08-06",
+		},
+		{
+			"name" => "Hubert Farnsworth",
+			"DOB"  => "2841-04-09",
+		},
+	],
+);
+
+
+*** Getting information out of a data structure ***
+
+Getting information out of a data structure
+Now, let's assume that you still have %account kicking around but everything else (if there was anything else) has fallen out of scope. You can print the information out by reversing the same procedure in each case. Again, here are four examples, of which the last is the most useful:
+
+my $ownersRef = $account{"owners"};
+my @owners    = @{ $ownersRef };
+my $owner1Ref = $owners[0];
+my %owner1    = %{ $owner1Ref };
+my $owner2Ref = $owners[1];
+my %owner2    = %{ $owner2Ref };
+print "Account #", $account{"number"}, "\n";
+print "Opened on ", $account{"opened"}, "\n";
+print "Joint owners:\n";
+print "\t", $owner1{"name"}, " (born ", $owner1{"DOB"}, ")\n";
+print "\t", $owner2{"name"}, " (born ", $owner2{"DOB"}, ")\n";
+
+Or, for short:
+
+my $ownersRef = $account{"owners"};
+my $owner1Ref = $ownersRef->[0];
+my $owner2Ref = $ownersRef->[1];
+print "Account #", $account{"number"}, "\n";
+print "Opened on ", $account{"opened"}, "\n";
+print "Joint owners:\n";
+print "\t", $owner1Ref->{"name"}, " (born ", $owner1Ref->{"DOB"}, ")\n";
+print "\t", $owner2Ref->{"name"}, " (born ", $owner2Ref->{"DOB"}, ")\n";
+
+
+*** Conditionals ***
+
+No surprises here, other than the spelling of elsif:
+
+my $word = "antidisestablishmentarianism";
+my $strlen = length $word;
+
+if($strlen >= 15) {
+	print "'", $word, "' is a very long word";
+} elsif(10 <= $strlen && $strlen < 15) {
+	print "'", $word, "' is a medium-length word";
+} else {
+	print "'", $word, "' is a short word";
+}
+
+*** Ternary Operator ***
+
